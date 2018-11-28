@@ -1,0 +1,22 @@
+model read "data/Before.txt"
+model smoothen 3
+model normalize 5870
+model set wavelength_range (3626, 6700)
+model set wavelength_index (0, 869)
+model set age_start 6.6
+model set age_factor 0.05
+model set name 'After.txt'
+model write 'data'
+
+observation read 'data/NEWNGC1984.txt'
+observation redshift 0 0.5 0.01
+observation normalize 5870
+observation set name 'NEWNGC1984_normalized.txt'
+observation write 'data'
+
+object new (0,1) (0,1)
+object calculate_chosen_model
+object set name 'output_1984.txt'
+object write 'data'
+object write_chosen 'data'
+object plot surface "data"

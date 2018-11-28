@@ -1,0 +1,49 @@
+set terminal postscript eps enhanced color
+set style function lines
+set key box opaque
+set grid xtics ytics ls 1
+set xtic auto
+set ytic auto
+set mxtics 5
+set mytics 5
+set style data linespoints
+set xtics nomirror axis
+set ytics nomirror axis
+set autoscale fix
+set offset graph 0.1, graph 0.1, graph 0.1, graph 0.1
+
+set style line 11 lc rgb '#808080' lt 1
+set border -1 back ls 11
+set tics nomirror
+set style line 12 lc rgb '#808080' lt 0 lw 1
+set grid back ls 12
+
+set style line 1 lc rgb '#8b1a0e' pt -1 ps 1 lt 1 lw 2
+set style line 2 lc rgb '#5e9c36' pt -1 ps 1 lt 1 lw 2
+
+set size 1.0, 1.0
+set multiplot title "Normalized Flux vs. Wavelength" \
+              font ",16"
+
+set size 1.0, 0.6
+set origin 0.0, 0.4
+set ylabel "Normalized Flux"
+set tmargin 3
+set bmargin 0
+
+unset xtics
+plot "data.dat" using 1:2 title "Model" with lp ls 1, \
+     "data.dat" using 1:3 title "Observation" with lp ls 2
+
+unset key
+unset tmargin
+unset bmargin
+set size 1.0, 0.4
+set origin 0.0, 0.0
+set ylabel "Residual"
+set xlabel "Wavelength (Angstroms)"
+set xtics
+set xzeroaxis lt -1
+set tmargin 0
+plot "data.dat" using 1:($2-$3) with lp ls 1, \
+     "data.dat" using 1:($3-$2) with lp ls 2

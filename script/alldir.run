@@ -1,0 +1,18 @@
+model read "data/models/"
+model interpolation_wavelength_start 3002.3
+model smoothen 3
+model set wavelength_range (3638, 6890)
+model normalize 5870
+model write 'data/models'
+
+observation directory 'data/observations'
+observation redshift 0 0.5 0.01
+observation normalize 5870
+observation write 'data/observations'
+
+object new (0,-1) (0,-1)
+object calculate_chosen_model
+object write 'data/objects'
+object write_chosen 'data/objects'
+object plot surface "data/plots"
+object plot scatter "data/plots"

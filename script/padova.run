@@ -1,0 +1,22 @@
+observation directory 'data/observations'
+observation set_wavelength_start 3638
+observation smoothen 3.0
+observation set_wavelength_end 6230
+observation redshift 0 0.5 0.01
+observation normalize 5870
+# observation write "data/observations/"
+
+model read "data/models/padova_test.txt"
+model interpolation_wavelength_start 3.0 3638
+model smoothen 3.0
+model set wavelength_range (3638, 6230)
+model normalize 5870
+model write 'data/models'
+
+object new (0,-1) (0,-1)
+object calculate_chosen_model
+# object write 'data/objects'
+# object write_chosen 'data/objects'
+# object plot surface "data/plots" "png"
+# object plot scatter "data/plots" "png"
+object plot surface_tile "data/plots" "png"
