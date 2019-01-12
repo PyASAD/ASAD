@@ -68,7 +68,7 @@ INTERACTIVE_OPTIONS = [
 
     (['-r', '--run'], {
         'action'  : 'store_true',
-        'default' : False,
+        'default' : True,
         'help'    : 'Assistant mode'
     }),
 

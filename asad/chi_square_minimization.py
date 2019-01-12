@@ -85,22 +85,22 @@ def chi_square_minimization(directory,temp_directory='',observ=''):
                     ch = chi_square(newfile, False)
                     if os.name == 'nt':
                         print str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("\\")+1:]) + " is: " + str(ch)
-                        f.write(str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("\\")+1:]) + " is: " + str(ch))
+                        #f.write(str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("\\")+1:]) + " is: " + str(ch))
                     else:
                         print str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("/")+1:]) + " is: " + str(ch)
-                        f.write(str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("\\")+1:]) + " is: " + str(ch))
+                        #f.write(str(i+1) + ") Chi square minimization of " + str(filename[filename.rfind("\\")+1:]) + " is: " + str(ch))
                     print ""
-                    f.write("\n")
+                    #f.write("\n")
                     chi_sq_values.append(ch)
                 i= i+1
         #print len(chi_sq_values)
         chi_all_files= mini(chi_sq_values)
         print ""
-        f.write("\n")
+        #f.write("\n")
         print("Chi square minimization of all files: " + str(chi_all_files))
-        f.write("Chi square minimization of all files: " + str(chi_all_files))
+        #f.write("Chi square minimization of all files: " + str(chi_all_files))
         print ""
-        f.write("\n")
+        #f.write("\n")
         index_of_min = [i for i, x in enumerate(chi_sq_values) if x == chi_all_files] #case where 2 files give the same minimum
         list = os.listdir(directory)
         result_ = []

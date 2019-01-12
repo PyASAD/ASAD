@@ -951,9 +951,11 @@ class Asad(object):
         return unicode(fmt_str)
 
     def format_chosen(self):
-        fmt = '{:<80} {:>8.6f} {:>10f}\nTest Statistic Value = {}\n'.format(
+        #str = float((self.min_age)/10)
+        #unikode = unicode(str,"utf-8")
+        fmt = '{}\t\t{}\t\t{}\t\t\t{}\n'.format(
             self.name,
-            self.min_age,
+            (self.min_age),
             self.min_reddening,
             self.min_stat
         )

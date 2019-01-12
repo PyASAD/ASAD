@@ -22,7 +22,7 @@ def calculateFirstColumns(input_path,column,inputAge,output_path,choice=0,printe
 
             outputFileName = os.path.basename(inputFile.name)
 
-            outputFileName = outputFileName[:-4] + '_msp_' + str(inputAge) + '_' + "id" + str(random_number) +  '.txt'
+            outputFileName = outputFileName[:-4] + '_msp_' + str(inputAge) + '.txt' #+ '_' + "id" + str(random_number) +  '.txt'
 
             outputFile = open(os.path.join(output_path,outputFileName), 'w')
 

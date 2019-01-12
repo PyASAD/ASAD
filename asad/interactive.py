@@ -1,6 +1,7 @@
 from __future__ import print_function
 observation_counter = 0
 import cmd
+import random
 import shutil
 import contextlib
 import io
@@ -25,10 +26,16 @@ from config import GlobalConfig
 from plotter import main_plotter
 import warnings
 from chi_square_minimization import chi_square_minimization
+global multi_folders_input
+multi_folders_input = []
+global multi_folders_input_bool
+multi_folders_input_bool = False
+global model_header_list
+model_header_list = []
 #===============================================================================
-def pre_loading_bar(i):
+def pre_loading_bar(i,text='Loading'):
     print("")
-    ok_print(" Reading Models...")
+    ok_print(" "+text+"...")
     print("")
     print ("|" + (" " * (i)) + "|")
     print("")
@@ -39,6 +46,8 @@ def folder_checker(path):
         os.makedirs(path)
     except:
         pass
+#============================================
+
 #===============================================================================
 #inputs value entered by user in cmd
 def safe_input(s):
@@ -131,15 +140,33 @@ def info_print(text):
     color_print(text, Fore.BLUE)
 
 #creates a list of input files
-def list_files(directory, pattern=".*"):
-    regex = re.compile(pattern)
-    in_dir = os.path.abspath(directory)
-    in_files = [
-        os.path.join(in_dir, f)
-        for f in os.listdir(in_dir)
-        if re.match(regex, os.path.basename(f))
-    ]
-    return in_files
+def list_files(directory, pattern=".*", choice = 0,listtt = []):
+    final = []
+    if choice == 0:
+        regex = re.compile(pattern)
+        in_dir = os.path.abspath(directory)
+        in_files = [
+            os.path.join(in_dir, f)
+            for f in os.listdir(in_dir)
+            if re.match(regex, os.path.basename(f))
+        ]
+        for kk in in_files:
+            #--------------
+            only_allowed = ['.txt','.ascii','.dat','.csv','.na']
+            if kk.find(only_allowed[0]) == -1 and kk.find(only_allowed[1]) == -1 and kk.find(only_allowed[2]) == -1 and kk.find(only_allowed[3]) == -1 and kk.find(only_allowed[4]) == -1:
+                pass
+            else:
+                final.append(kk)
+    elif choice == 1:
+        in_files = listtt
+        for kk in in_files:
+            #--------------
+            only_allowed = ['.txt','.ascii','.dat','.csv','.na']
+            if kk.find(only_allowed[0]) == -1 and kk.find(only_allowed[1]) == -1 and kk.find(only_allowed[2]) == -1 and kk.find(only_allowed[3]) == -1 and kk.find(only_allowed[4]) == -1:
+                pass
+            else:
+                final.append(kk)
+    return final
 
 def base_command(type):
     def command(self, arg):
@@ -239,17 +266,19 @@ class Base_Shell(Shell):
 #reads from a file and checks for any exceptions
     def do_read(self, arg,choice=0):
         "Read from a file"
-        try:    #71444
-			if choice == 0:
-				path = os.path.abspath(parse_args(arg, expected=1)[0])
-				base = self.asad_type(path=path)
-				self.values.append(base)
-				ok_print("Read OK: {}".format(path))
-				ok_print("Wavelength Step: {}".format(base.wavelength_step))
-			elif choice == 1:
-				path = os.path.abspath(parse_args(arg, expected=1)[0])
-				base = self.asad_type(path=path)
-				self.values.append(base)
+        try:
+            if choice == 0:
+                path = ""
+                path = os.path.abspath(parse_args(arg, expected=1)[0])
+                base = self.asad_type(path=path)
+                self.values.append(base)
+                ok_print("Read OK: {}".format(path))
+                ok_print("Wavelength Step: {}".format(base.wavelength_step))
+            elif choice == 1:
+                path = ""
+                path = os.path.abspath(parse_args(arg, expected=1)[0])
+                base = self.asad_type(path=path)
+                self.values.append(base)
 				#ok_print("Read OK: {}".format(path))
 				#ok_print("Wavelength Step: {}".format(base.wavelength_step))
         except Exception as err:
@@ -638,18 +667,32 @@ class Model_Shell(Base_Shell):
                 return np.pad(IntLineal(wl[self.closest(wl,wlm[0]):]), (wl.size-wl[self.closest(wl,wlm[0]):].size,0), 'edge')
 
     #reads files and prints out if they were read without errors
-    def do_read(self, arg, format='DELGADO',choice=0,typee=None):
+    def do_read(self, path, format='DELGADO',choice=0,typee=None,header=False):
+        def model_header(path):
+            f = open(path,'r')
+            lines = f.readlines()
+            ndx = 0
+            for i in lines[0]:
+                if isinstance(i,int):
+                    ndx = lines[0].index(i)
+                    break
+            strr = lines[0][ndx+1:]
+            list = strr.split(',')
+            new_list = []
+            for l in list:
+                new_list.append(float(l))
+            return new_list
         global observation_counter
         try:
             if choice == 0:
-				path = os.path.abspath(parse_args(arg, expected=1)[0])
-				base = self.asad_type(path=path, format=format)
-				self.values.append(base)
-				ok_print("Read OK: {}".format(path))
-				ok_print("Wavelength Step: {}".format(base.wavelength_step))
-
+                if header:
+                    global model_header_list
+                    model_header_list = model_header(path)
+                base = self.asad_type(path=path, format=format)
+                self.values.append(base)
+                ok_print("Read OK: {}".format(path))
+                ok_print("Wavelength Step: {}".format(base.wavelength_step))
             elif choice == 1:
-				path = os.path.abspath(parse_args(arg, expected=1)[0])
 				base = self.asad_type(path=path, format=format)
 				self.values.append(base)
         except Exception as err:
@@ -824,13 +867,25 @@ class Object_Shell(Base_Shell):
                 i, obj.name[:15], obj.min_age, obj.min_reddening))
         print(sep)
 
-    def do_write_chosen(self, arg, config=None):
+    def do_write_chosen(self, arg, config=None,mg_choice=0,mg=[]):
 
         def write_chosen(path, values):
             with io.open(path, 'w') as f:
-                for obj in values:
-                    f.write(obj.format_chosen())
-                    ok_print('Wrote %s to %s' % (obj.name, path))
+                if mg_choice == 0:
+                    unikode = unicode("Model name\t\t\t\tMinimum Age\tMinimum Reddening\tTest Statistical Value\n", "utf-8")
+                    f.write(unikode)
+                    for obj in values:
+                        f.write(obj.format_chosen())
+                        ok_print('Wrote %s to %s' % (obj.name, path))
+                else:
+                    unikode = unicode("Model name\t\t\t\t\tMinimum Age\tMinimum Reddening\tTest Statistical Value\n", "utf-8")
+                    f.write(unikode)
+                    for m in mg:
+                        for mm in m:
+                            for obj in values:
+                                if mm.find(obj.name) != -1:
+                                    f.write(obj.format_chosen())
+                                    ok_print('Wrote %s to %s' % (obj.name, path))
                 if config:
                     buff = StringIO()
                     buff.write(unicode('\n'))
@@ -847,7 +902,10 @@ class Object_Shell(Base_Shell):
             #print(fpath)
             return fpath
         else:
-            write_chosen(path, self.values)
+            if mg_choice == 0:
+                write_chosen(path, self.values)
+            else:
+                write_chosen(path, self.values)
             #print(path)
             return path
 
@@ -883,7 +941,7 @@ class Object_Shell(Base_Shell):
             raise err
 #////////////////////////////////////////////////////////////////////////////////
     #plots the residual from the chi-squared best match
-    def do_plot_residual_match(self,twoModels, arg, format='', title=None,chi_result=[] ,choice=0,key=False):
+    def do_plot_residual_match(self,twoModels, arg, format='', title=None,chi_result=[] ,choice=0,key=False,Danger=-1): #the Danger parameter shall not be used anywhere except the multi-folder running mode
         try:
             path = os.path.abspath(parse_args(arg, expected=1)[0])
             if not os.path.isdir(path):
@@ -905,7 +963,7 @@ class Object_Shell(Base_Shell):
                         plot.residual_match(self.values[i],self.values[i+limit], outdir=path, observationKey=observationKey, modelKey1=modelKey1, modelKey2=modelKey2, save=True, format=format, title=title)
                         ok_print('Plotted residual match %s & %s to %s' % (self.values[i].name,self.values[i+limit].name, path))
                 else:
-                    i = -1
+                    i = Danger
                     #limit = len(self.values)/2
                     ndxxx = 0
                     for j in chi_result:
@@ -1209,10 +1267,9 @@ class Run_Shell(Object_Shell):
                      fileName
                 )
             #call (do_read)for reading from a file: call input_directory = data\models\MILESres3.6.txt and format = INTERMEDIATE
-            self.model.do_read(
-                self.config['model_input_directory'],
-                format=self.config['model_format']
-            )
+            #print('1---> ' + self.config['model_input_directory'])
+            #print('2---> ' + self.config['model_format'])
+            self.model.do_read(self.config['model_input_directory'],format=self.config['model_format'] , choice = 0,header=True)
         else:
             #call MODEL_FORMATS from pyasad file/set the model default format as INTERMEDIATE
             model_format = self.config['model_format']
@@ -1270,7 +1327,7 @@ class Run_Shell(Object_Shell):
         self.config['model_folder_directory'] = dapathhh
         fulll = ""
         model_files = os.listdir(dapathhh)
-        pre_loading_bar(29)
+        pre_loading_bar(len(model_files),'Reading Models')
         for mod in model_files:
             if os.name == 'nt':
                 fulll = dapathhh + '\\' + mod
@@ -1307,7 +1364,7 @@ class Run_Shell(Object_Shell):
         self.config['model_folder_directory_two'] = dapathhh
         fulll = ""
         model_files = os.listdir(dapathhh)
-        pre_loading_bar(2)
+        pre_loading_bar(2,'Reading Models')
         for mod in model_files:
             if os.name == 'nt':
                 fulll = dapathhh + '\\' + mod
@@ -1433,13 +1490,81 @@ class Run_Shell(Object_Shell):
     #set model_output_directory = data/models as a default input
     #call do_write(data/models)
 
+    def hidden_files_deleter(self,path):
+        try:
+            l = os.listdir(path)
+            for thing in l:
+                #print("Sample is ---> " + file[0])
+                if not os.path.isdir(thing):
+                    if thing[0] == '.':
+                        os.remove(path + '/' + thing)
+                else:
+                    for item in os.listdir(l + '/' + thing):
+                        if item[0] == '.':
+                            os.remove(path + '/' + thing + '/' + item)
+        except Exception as e:
+            pass
+
+
+    def multi_folder_checker(self,path):
+        #print("Starting...")
+        try:
+            l = os.listdir(path)
+            for ll in l:
+                #print(path + '/' + ll)
+                #print(os.path.isdir(path + '/' + ll))
+                if os.path.isdir(path + '/' + ll):
+                    return True
+                else:
+                    return False
+        except:
+            return False
+################################################################
+    def multi_folder_read(self,path):
+
+        global multi_folders_input
+        l = os.listdir(path)
+        #print("Read a directroy containing --->")
+        #print(l)
+        ############
+        for i in xrange(0,len(l)):
+            multi_folders_input.append([0])
+        #################
+        n = -1
+        for k in l:
+            n += 1
+            multi_folders_input[n].append(k)
+            str = path + '/' + k
+            #print('\t1---> ' + str)
+            ll = os.listdir(str)
+            for kk in list_files("",choice=1,listtt=ll):
+                strr = ""
+                strr = str + '/' + kk
+                #print('\t2---> ' + strr)
+                if os.name == 'mac':
+                    strr = str + '/' + kk + '/*'
+                self.observation.do_read_file_directory(strr)
+                multi_folders_input[n][0] += 1
+        #print(multi_folders_input)
+
+
     @prompt_command
     def observation_read(self):
+        global multi_folders_input_bool
         self.config['observation_input_directory'] = safe_default_input(
             'Enter the Observation file (including the path) ',
             self.config['observation_input_directory'])
-        return self.observation.do_read_file_directory(
-               self.config['observation_input_directory'])
+        self.hidden_files_deleter(self.config['observation_input_directory'])
+        multi_folders_input_bool = self.multi_folder_checker(self.config['observation_input_directory'])
+        #print(os.listdir(self.config['observation_input_directory']))
+        #print(multi_folders_input_bool)
+        if multi_folders_input_bool: #If True !
+            #print("\n\t---->   It contains Folders !!!\n\n")
+            self.multi_folder_read(self.config['observation_input_directory'])
+        else:
+            if os.path.isdir(self.config['observation_input_directory']) and os.name == 'mac':
+                self.config['observation_input_directory'] += '/*'
+            return self.observation.do_read_file_directory(self.config['observation_input_directory'])
     # set observation_input_directory = data\observations as a default input
 	#call do_read_file_directory(data\observations)
 
@@ -1677,14 +1802,19 @@ class Run_Shell(Object_Shell):
     	#call do_calculate_chosen_model(chi-squared)
 
 
-    @prompt_command
-    def object_output_chosen(self):
-        self.config['object_chosen_directory'] = safe_default_input(
-            'Output file or directory',
-            self.config['object_chosen_directory'])
-        folder_checker(self.config['object_chosen_directory'])
-        self.config['plot_surface_dir'] = self.object.do_write_chosen(self.config['object_chosen_directory'],
-                                    self.config)
+    def object_output_chosen(self,mg_choice=0,mg=[],str=""):
+        if mg_choice == 0:
+            self.config['object_chosen_directory'] = safe_default_input(
+                'Output file or directory',
+                self.config['object_chosen_directory'])
+            temp_strr = self.config['object_chosen_directory']
+            if temp_strr[-4] != ".":
+                folder_checker(self.config['object_chosen_directory'])
+            self.config['plot_surface_dir'] = self.object.do_write_chosen(self.config['object_chosen_directory'],
+                                        self.config,mg_choice=mg_choice,mg=mg)
+        else:
+            self.config['plot_surface_dir'] = self.object.do_write_chosen(str,
+                                        self.config,mg_choice=mg_choice,mg=mg)
         self.fpath = self.config['plot_surface_dir']
         #print(self.fpath)
         #print(self.config['plot_surface_dir'])
@@ -1711,21 +1841,10 @@ class Run_Shell(Object_Shell):
     #set plot_model_title = Model as a default input
 	#output:: Custom model title [Model]
 
-    def plot_surface_output_msp(self,multi_msp_result,multi_,folder):
-        #print("OK_MSP")
+    def do_plot_surface_output_msp(self,multi_msp_result,multi_,folder,title,output_dir):
         _path_ = ''
         _path = ''
         path_ = ''
-
-        self.plot_output_format()
-        self.config['plot_surface_directory'] = safe_default_input(
-            'Output directory',
-            self.config['plot_surface_directory'])
-
-        title = None
-        if parse_input_yn('Custom plot title'):
-            title = safe_default_input('Plot title', None)
-
         folder_checker(self.config['plot_surface_directory'])
         for u in folder:
             self.config['choices_output_surface_plots'] = 'Y'
@@ -1757,8 +1876,8 @@ class Run_Shell(Object_Shell):
                                     elif os.name == 'mac' or os.name == 'posix':
                                         _path_ = _path + '/' + path_
 
-                                    file_name = main_plotter(_path_, self.config['plot_output_format'], title , self.config['plot_surface_directory'])
-                                    ok_print('\nSaved < ' + file_name + ' > to ' + str(self.config['plot_surface_directory']))
+                                    file_name = main_plotter(_path_, self.config['plot_output_format'], title , output_dir)
+                                    ok_print('\nSaved < ' + file_name + ' > to ' + str(output_dir))
                                 except Exception as e:
                                     print("@ Error: " + str(e) )
                     else:
@@ -1770,10 +1889,106 @@ class Run_Shell(Object_Shell):
                             elif os.name == 'mac' or os.name == 'posix':
                                 _path_ = _path + '/' + path_
 
-                            file_name = main_plotter(_path_, self.config['plot_output_format'], title , self.config['plot_surface_directory'])
-                            ok_print('\nSaved < ' + file_name + ' > to ' + str(self.config['plot_surface_directory']))
+                            file_name = main_plotter(_path_, self.config['plot_output_format'], title , output_dir)
+                            ok_print('\nSaved < ' + file_name + ' > to ' + str(output_dir))
                         except Exception as e:
                             print("@ Error: " + str(e) )
+
+    def plot_surface_output_msp(self,multi_msp_result,multi_,folder):
+        #print("OK_MSP")
+
+        self.plot_output_format()
+        self.config['plot_surface_directory'] = safe_default_input(
+            'Output directory',
+            self.config['plot_surface_directory'])
+
+        title = None
+        if parse_input_yn('Custom plot title'):
+            title = safe_default_input('Plot title', None)
+
+        if multi_folders_input_bool:
+            self.multi_folder_surface_output(self.config['plot_surface_directory'],0,multi_msp_result,folder,title)
+        else:
+            self.do_plot_surface_output_msp(multi_msp_result,multi_,folder,title,self.config['plot_surface_directory'])
+
+
+    def multi_folder_result_output(self,path,choice=0,list=[]):
+        global multi_folders_input
+        flist = []
+        if choice == 0:
+            main_folder_title = "best_match_of_"
+            for m in xrange(0,len(multi_folders_input)):
+                main_folder_title += (multi_folders_input[m][1])
+                if m < len(multi_folders_input) - 1:
+                    main_folder_title += "_&&_"
+            main_folder_title = main_folder_title + '_id' + str( random.randint(1000,10000) )
+            w = 0
+            os.mkdir(path + '/' + main_folder_title)
+            for M in multi_folders_input:
+                os.makedirs(path + '/' + main_folder_title + '/' + M[1])
+                flist.append(path + '/' + main_folder_title + '/' + M[1])
+                w += 1
+            w = 0
+            n = 0
+            for folder in multi_folders_input:
+                o = folder[0] + n
+                self.object_output_chosen(mg_choice=1,mg=list[n:o],str= (flist[w] + '/result_of_' + folder[1] + '.txt'))
+                n = o
+                w += 1
+
+    def multi_folder_residual_output(self,path,choice=0,list=[],format='',title='',key=False):
+          global multi_folders_input
+          flist = []
+          if choice == 0:
+              main_folder_title = "residual_plots_of_"
+              for m in xrange(0,len(multi_folders_input)):
+                  main_folder_title += (multi_folders_input[m][1])
+                  if m < len(multi_folders_input) - 1:
+                      main_folder_title += "_&&_"
+              main_folder_title = main_folder_title + '_id' + str( random.randint(1000,10000) )
+              w = 0
+              os.mkdir(path + '/' + main_folder_title)
+              for M in multi_folders_input:
+                  os.makedirs(path + '/' + main_folder_title + '/' + M[1])
+                  flist.append(path + '/' + main_folder_title + '/' + M[1])
+                  w += 1
+              w = 0
+              n = 0
+              z = -1
+              for folder in multi_folders_input:
+                  o = folder[0] + n
+                  #self.object_output_chosen(mg_choice=1,mg=list[n:o],str= (flist[w] + '/result_of_' + folder[1] + '.txt'))
+                  #print(list[n:o])
+                  self.object.do_plot_residual_match(twoModels,flist[w],format=format, title=title ,chi_result=list[n:o],key=key,Danger=z)
+                  n = o
+                  w += 1
+                  z += 1
+
+    def multi_folder_surface_output(self,path,choice=0,list=[],folderz=[],title=''):
+          global multi_folders_input
+          flist = []
+          if choice == 0:
+              main_folder_title = "surface_plots_of_"
+              for m in xrange(0,len(multi_folders_input)):
+                  main_folder_title += (multi_folders_input[m][1])
+                  if m < len(multi_folders_input) - 1:
+                      main_folder_title += "_&&_"
+              main_folder_title = main_folder_title + '_id' + str( random.randint(1000,10000) )
+              w = 0
+              os.mkdir(path + '/' + main_folder_title)
+              for M in multi_folders_input:
+                  os.makedirs(path + '/' + main_folder_title + '/' + M[1])
+                  flist.append(path + '/' + main_folder_title + '/' + M[1])
+                  w += 1
+              w = 0
+              n = 0
+              follist = []
+              for folder in multi_folders_input:
+                  follist.append([folderz[w]])
+                  o = folder[0] + n
+                  self.do_plot_surface_output_msp(list[n:o],True,follist[w],title,flist[w])
+                  n = o
+                  w += 1
 
 
     @prompt_command
@@ -1869,9 +2084,10 @@ class Run_Shell(Object_Shell):
         if parse_input_yn('Custom plot keys'):
             key = True
         folder_checker(self.config['plot_residual_match_directory'])
-        self.object.do_plot_residual_match(twoModels,
-            self.config['plot_residual_match_directory'],
-            format=self.config['plot_output_format'], title=title ,chi_result=chi_result,key=key)
+        if multi_folders_input_bool:
+            self.multi_folder_residual_output(self.config['plot_residual_match_directory'],choice=0,list=chi_result,format=self.config['plot_output_format'],title=title,key=key)
+        else:
+            self.object.do_plot_residual_match(twoModels,self.config['plot_residual_match_directory'],format=self.config['plot_output_format'], title=title ,chi_result=chi_result,key=key)
 
     @prompt_command
     def plot_surface_error_output(self):
@@ -1921,6 +2137,7 @@ class Run_Shell(Object_Shell):
     def cmdloop(self):
         #error_print("\t Attention ! This version of the program is BETA (2.4). Bugs and errors are still expected in this version. \n Please Note that the entire range normalization is not working temporarly \n    Press ENTER to start this program ---->")
         #zzzw = raw_input('\n')
+        global twoModels
         twoModels = False
         observation_is_smoothed = False
         msp_chosen = False
@@ -1946,11 +2163,12 @@ class Run_Shell(Object_Shell):
                 except Exception:
                     shutil.rmtree(working_path + '/' + f)
         info_print("      ASAD: Analyzer of Spectra for Age Determination")
-        #info_print("Assistant mode.")
+        info_print("      -> version 3.2")
         info_print("----Press ENTER key to choose the pre-set Default Options----");   #Informs user that ENTER key chooses the default option.
         self.config['object_temp_path_ndx'] == -1
         self.observation_read()
         #print (observ_fname)
+        #print(multi_folders_input)
         self.config['observation_filename'] = self.config['observation_input_directory']
         self.config['object_temp_path'] = self.dir_finder('temp')
         #print (self.config['observation_filename'])
@@ -2010,10 +2228,11 @@ class Run_Shell(Object_Shell):
         while lendx == 0:
             try:
                 mchoice = int( safe_default_input(" Please enter '1' to input a single model, or enter '2' to enter a folder of models [MG models only] ---> ",self.config['choices_model_menu_one']) )
+                #self.config['choices_model_menu_one'] = mchoice
                 lendx = 1
             except:
                 print("\tWrong Input ! Please try again !")
-
+        self.config['choices_model_menu_one'] = mchoice
         original_model_input = ""
         if mchoice == 1:
             self.model_read()
@@ -2027,6 +2246,7 @@ class Run_Shell(Object_Shell):
                     lendx = 1
                 except:
                     print("\tWrong Input ! Please try again !")
+            self.config['choices_model_menu_two'] = mmchoice
             if mmchoice == 1:
                 self.model_read_two()
             else:
@@ -2038,12 +2258,12 @@ class Run_Shell(Object_Shell):
 
 
         potential_msp = False
-        import random
+
         random_number = random.randint(1,99999)
 
         num = 0
         if model_folder == False:
-            if parse_input_yn('Would you like to generate the MG file',default=True) != False:
+            if parse_input_yn('Would you like to generate the MG file(s)',default=False) != False:
                 self.config['choices_object_output'] = 1
                 num = int(self.config['choices_object_output'])
                 msp_chosen = True
@@ -2075,15 +2295,8 @@ class Run_Shell(Object_Shell):
                     else:
                         self.config['model_msp_output'] = "data/models"
                     filezzz = []
-                    print("")
-                    ok_print(" Generating MG files from 6.8 to 9.5 ...")
-                    print("")
-                    print ("|" + (" " * (28*2)) + "|")
-                    print("")
-                    sys.stdout.write("|")
-                    for i in xrange(68,96):
-                        i = float(i)
-                        i /= 10
+                    pre_loading_bar(len(model_header_list),text=('Generating MG files from ' + str(model_header_list[0]) + ' to ' + str(model_header_list[-1])))
+                    for i in model_header_list:
                         column,inputAge = fg.getColumn(i,1) #Getting the column and input age from FileGenFunctions
                         sys.stdout.write("#")
                         calcFileName = fg.calculateFirstColumns( self.config['model_input_directory'] , column ,inputAge , self.config['model_msp_output'] , 0 ,printer=1,random_number=random_number)
@@ -2163,17 +2376,25 @@ class Run_Shell(Object_Shell):
                 self.object_calculate_chosen(1)
                 if parse_input_yn('Output best Reddening/Age match of MG', default= False):
                     output_dirr = safe_default_input('Output file or directory',self.config['object_chosen_directory'])
-                    folder_checker(output_dirr)
-                    list_tempp = os.listdir(self.config['object_temp_path'])
-                    for ele in list_tempp:
-                        if os.name =='nt':
-                            if ele.find("chi_sq_output") != -1:
-                                shutil.move(self.config['object_temp_path'] + '\\' + ele , output_dirr)
-                                ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                    #global multi_folders_input_bool
+                    if not multi_folders_input_bool:
+                        if output_dirr[-4] != ".":
+                            folder_checker(output_dirr)
+                            list_tempp = os.listdir(self.config['object_temp_path'])
+                            for ele in list_tempp:
+                                if os.name =='nt':
+                                    if ele.find("chi_sq_output") != -1:
+                                        #os.rename()
+                                        shutil.move(self.config['object_temp_path'] + '\\' + ele , output_dirr)
+                                        ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                                else:
+                                    if ele.find("chi_sq_output") != -1:
+                                        shutil.move(self.config['object_temp_path'] + '/' + ele , output_dirr)
+                                        ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
                         else:
-                            if ele.find("chi_sq_output") != -1:
-                                shutil.move(self.config['object_temp_path'] + '/' + ele , output_dirr)
-                                ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                            self.object_output_chosen(mg_choice=1,mg=multi_msp_result,str=output_dirr)
+                    else:
+                        self.multi_folder_result_output(output_dirr,0,multi_msp_result)
 
             else:
                 self.config['temporary_choice'] = num
@@ -2198,18 +2419,26 @@ class Run_Shell(Object_Shell):
                     self.object_calculate_chosen(1)
                     if parse_input_yn('Output best Reddening/Age match for MG', default= True):
                         output_dirr = safe_default_input('Output file or directory',self.config['object_chosen_directory'])
-                        folder_checker(output_dirr)
-                        list_tempp = os.listdir(self.config['object_temp_path'])
-                        for ele in list_tempp:
-                            if os.name =='nt':
-                                if ele.find("chi_sq_output") != -1:
-                                    #os.rename()
-                                    shutil.move(self.config['object_temp_path'] + '\\' + ele , output_dirr)
-                                    ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                        #global multi_folders_input_bool
+                        if not multi_folders_input_bool:
+                            if output_dirr[-4] != ".":
+                                folder_checker(output_dirr)
+                                list_tempp = os.listdir(self.config['object_temp_path'])
+                                for ele in list_tempp:
+                                    if os.name =='nt':
+                                        if ele.find("chi_sq_output") != -1:
+                                            #os.rename()
+                                            shutil.move(self.config['object_temp_path'] + '\\' + ele , output_dirr)
+                                            ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                                    else:
+                                        if ele.find("chi_sq_output") != -1:
+                                            shutil.move(self.config['object_temp_path'] + '/' + ele , output_dirr)
+                                            ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
                             else:
-                                if ele.find("chi_sq_output") != -1:
-                                    shutil.move(self.config['object_temp_path'] + '/' + ele , output_dirr)
-                                    ok_print("Best Reddening/Age match is saved to " + output_dirr + " as " + ele + "\n")
+                                self.object_output_chosen(mg_choice=1,mg=multi_msp_result,str=output_dirr)
+                        else:
+                            self.multi_folder_result_output(output_dirr,0,multi_msp_result)
+
                 else:
                     self.config['temporary_choice'] = num
                     #print(self.config['temporary_choice'])
