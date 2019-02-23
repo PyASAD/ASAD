@@ -33,11 +33,11 @@ multi_folders_input_bool = False
 global model_header_list
 model_header_list = []
 #===============================================================================
-def pre_loading_bar(i,text='Loading'):
+def pre_loading_bar(i,text='Loading',multiply=1):
     print("")
     ok_print(" "+text+"...")
     print("")
-    print ("|" + (" " * (i)) + "|")
+    print ("|" + ( (" " * (i)) * multiply ) + "|")
     print("")
     sys.stdout.write("|")
 #____________________________________________
@@ -941,7 +941,7 @@ class Object_Shell(Base_Shell):
             raise err
 #////////////////////////////////////////////////////////////////////////////////
     #plots the residual from the chi-squared best match
-    def do_plot_residual_match(self,twoModels, arg, format='', title=None,chi_result=[] ,choice=0,key=False,Danger=-1): #the Danger parameter shall not be used anywhere except the multi-folder running mode
+    def do_plot_residual_match(self,twoModels, arg, format='', title=None,chi_result=[] ,choice=0,key=False,Danger=-1): #the Danger parameter shall NOT be used anywhere except the multi-folder running mode
         try:
             path = os.path.abspath(parse_args(arg, expected=1)[0])
             if not os.path.isdir(path):
@@ -988,7 +988,7 @@ class Object_Shell(Base_Shell):
                                         ndxxx = value_index
                                         break
                             except Exception as e:
-                                print("@Error : " + str(e))
+                                print("@Error1 : " + str(e))
                             try:
                                 if key == True:
                                     ok_print('Please specify the legend parameters for plot with observation -> '+self.values[i].observation.original_name)
@@ -1002,7 +1002,7 @@ class Object_Shell(Base_Shell):
                                 plot.residual_match(self.values[i],self.values[ndxxx], outdir=path, observationKey=observationKey, modelKey1=modelKey1, modelKey2=modelKey2, save=True, format=format, title=title)
                                 ok_print('Plotted residual match %s & %s to %s' % (self.values[i].name,self.values[ndxxx].name, path))
                             except Exception as e:
-                                print("@Error : " + str(e))
+                                print("@Error2 : " + str(e))
 
             else:
                 for obj in self.values:
@@ -1300,7 +1300,7 @@ class Run_Shell(Object_Shell):
                 self.config['model_input_directory'] = fileName
             #call (do_read)for reading from a file: call input_directory = data\models\MILESres3.6.txt and format = INTERMEDIATE
 			#lowlowlow
-            self.model.do_read(self.config['model_input_directory'],format=self.config['model_format'] , choice=1)
+            self.model.do_read(self.config['model_input_directory'],format=self.config['model_format'] , choice=1 , header=False)
 
 
     def model_read_folder(self):
@@ -1328,13 +1328,15 @@ class Run_Shell(Object_Shell):
         fulll = ""
         model_files = os.listdir(dapathhh)
         pre_loading_bar(len(model_files),'Reading Models')
+        temp_bool = True
         for mod in model_files:
             if os.name == 'nt':
                 fulll = dapathhh + '\\' + mod
-                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1)
+                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1 , header = temp_bool)
             else:
                 fulll = dapathhh + '/' + mod
-                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1)
+                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1 , header = temp_bool)
+            temp_bool = False
             sys.stdout.write("#")
         sys.stdout.write("|")
         print("")
@@ -1365,13 +1367,15 @@ class Run_Shell(Object_Shell):
         fulll = ""
         model_files = os.listdir(dapathhh)
         pre_loading_bar(2,'Reading Models')
+        temp_bool = True
         for mod in model_files:
             if os.name == 'nt':
                 fulll = dapathhh + '\\' + mod
-                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1)
+                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1 , header = temp_bool)
             else:
                 fulll = dapathhh + '/' + mod
-                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1)
+                self.model.do_read(fulll,format=self.config['model_format'] , choice = 1 , header = temp_bool)
+            temp_bool = False
             sys.stdout.write("#")
         sys.stdout.write("|")
         print("")
@@ -1842,6 +1846,7 @@ class Run_Shell(Object_Shell):
 	#output:: Custom model title [Model]
 
     def do_plot_surface_output_msp(self,multi_msp_result,multi_,folder,title,output_dir):
+        global model_header_list
         _path_ = ''
         _path = ''
         path_ = ''
@@ -1889,7 +1894,7 @@ class Run_Shell(Object_Shell):
                             elif os.name == 'mac' or os.name == 'posix':
                                 _path_ = _path + '/' + path_
 
-                            file_name = main_plotter(_path_, self.config['plot_output_format'], title , output_dir)
+                            file_name = main_plotter(_path_, self.config['plot_output_format'], title , output_dir,headers=model_header_list)
                             ok_print('\nSaved < ' + file_name + ' > to ' + str(output_dir))
                         except Exception as e:
                             print("@ Error: " + str(e) )
@@ -2255,7 +2260,7 @@ class Run_Shell(Object_Shell):
             #original_model_input = self.config['model_folder_directory']
 
 
-
+        #print(len(model_header_list))
 
         potential_msp = False
 
@@ -2264,6 +2269,8 @@ class Run_Shell(Object_Shell):
         num = 0
         if model_folder == False:
             if parse_input_yn('Would you like to generate the MG file(s)',default=False) != False:
+                stepp = 0
+                stepp = safe_default_input('Please specify the step of generation ', self.config['object_msp_step'])
                 self.config['choices_object_output'] = 1
                 num = int(self.config['choices_object_output'])
                 msp_chosen = True
@@ -2272,15 +2279,16 @@ class Run_Shell(Object_Shell):
                 if not_all_confirmer == True:
 
                     print("\n\tComparing model (with combination) to the observation...\n")
-                    column,inputAge = fg.getColumn(0.0) #Getting the column and input age from FileGenFunctions
+                    column,inputAge = fg.getColumn(headers=model_header_list) #Getting the column and input age from FileGenFunctions
 
-                    if os.name == 'nt':
-                        self.config['model_msp_output'] = "data\\models"
+                    if self.config['model_input_directory'].rfind('/') != -1:
+                        self.config['model_msp_output'] = self.config['model_input_directory'][:self.config['model_input_directory'].rfind('/')]
+                        #print('\n\n\nTHE_THING--->' + self.config['model_msp_output'] + '\n\n\n')
                     else:
-                        self.config['model_msp_output'] = "data/models"
+                        self.config['model_msp_output'] = self.config['model_input_directory'][:self.config['model_input_directory'].rfind('\\')]
 
 
-                    calcFileName = fg.calculateFirstColumns( self.config['model_input_directory'] , column ,inputAge , self.config['model_msp_output'] , 0 ,random_number=random_number)
+                    calcFileName = fg.calculateFirstColumns( self.config['model_input_directory'] , column ,inputAge , self.config['model_msp_output'] , 0 ,random_number=random_number,headers=model_header_list , step = int(stepp))
 
                     print("\nAlmost there...\n")
                     #print(calcFileName[0])
@@ -2290,17 +2298,25 @@ class Run_Shell(Object_Shell):
                 else:
                     #self.config['model_msp_output'] = safe_default_input("\nEnter your MG file's location " , self.config['model_msp_output'] )
                     #filezzz = os.listdir("C:\Users\hicha\Desktop\ASAD_2.3_BETA\data\MSP")
-                    if os.name == 'nt':
-                        self.config['model_msp_output'] = "data\\models"
+                    if self.config['model_input_directory'].rfind('/') != -1:
+                        self.config['model_msp_output'] = self.config['model_input_directory'][:self.config['model_input_directory'].rfind('/')]
+                        #print('\n\n\nTHE_THING--->' + self.config['model_msp_output'] + '\n\n\n')
                     else:
-                        self.config['model_msp_output'] = "data/models"
+                        self.config['model_msp_output'] = self.config['model_input_directory'][:self.config['model_input_directory'].rfind('\\')]
                     filezzz = []
-                    pre_loading_bar(len(model_header_list),text=('Generating MG files from ' + str(model_header_list[0]) + ' to ' + str(model_header_list[-1])))
+                    pre_loading_bar(len(model_header_list),text=('Generating MG files from ' + str(model_header_list[0]) + ' to ' + str(model_header_list[-1])),multiply=2)
                     for i in model_header_list:
-                        column,inputAge = fg.getColumn(i,1) #Getting the column and input age from FileGenFunctions
+                        #print(i)
+                        #print(isinstance(i,basestring))
+                        #print(isinstance(i,float))
+                        column,inputAge = fg.getColumn(inputAge=i,choice=1,headers=model_header_list) #Getting the column and input age from FileGenFunctions
+
                         sys.stdout.write("#")
-                        calcFileName = fg.calculateFirstColumns( self.config['model_input_directory'] , column ,inputAge , self.config['model_msp_output'] , 0 ,printer=1,random_number=random_number)
+
+                        calcFileName = fg.calculateFirstColumns( self.config['model_input_directory'] , column , inputAge , self.config['model_msp_output'] , 0 ,printer=1,random_number=random_number,headers=model_header_list , step = int(stepp))
+
                         sys.stdout.write("#")
+
                         #ok_print("Enter the name of the generated file as input")
                         #print("\nAlmost there...\n")
                         filezzz.append(calcFileName[0])
@@ -2309,8 +2325,7 @@ class Run_Shell(Object_Shell):
                     twoModels = True
                     multi_ = True
                     sys.stdout.write("|")
-                    print("")
-                    print("")
+                    print("\n"*2)
 
         else:
             twoModels = True

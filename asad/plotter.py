@@ -1,5 +1,6 @@
-def main_plotter(fileofwork , format , title , output ):
+def main_plotter(fileofwork , format , title , output ,headers=[6.8,6.9,7.0,7.1,7.2,7.3,7.4,7.5,7.6,7.7,7.8,7.9,8.0,8.1,8.2,8.3,8.4,8.5,8.6,8.7,8.8,8.9,9.0,9.1,9.2,9.3,9.4,9.5]):
     #np.loadtxt('balmer_air.txt',unpack=True,usecols=[0])
+    #print(len(headers))
     import numpy as np
     from pandas import DataFrame
     import matplotlib.pyplot  as plt
@@ -83,7 +84,11 @@ def main_plotter(fileofwork , format , title , output ):
                 columns_num += 1
         return final_ages_list , columns_num , rows_num
 
-    temp=np.arange(68,96)
+    n1 = headers[0]*10
+    n2 = (headers[-1]*10) + 1
+    #print('n1--->' + str(n1))
+    #print('n2--->' + str(n2))
+    temp=np.arange(n1,n2)
     q_a = 0
     no_age = 0
     data=np.loadtxt(fileofwork,unpack=True)
@@ -107,22 +112,27 @@ def main_plotter(fileofwork , format , title , output ):
     		flux_e=data[0:][j]
     		chi[i,j-3]=((flux_observed[i]-flux_e[i])**2)
     sum_matrix= np.sum(chi, axis=0)
-    final_matrix= np.full((28,100),0,dtype=float)
+    final_matrix= np.full((len(headers),100),0,dtype=float)
     #new= np.full((28,100),None,dtype=float)
 
     #new= sum_matrix[~np.isnan(sum_matrix)]
     f=0
-    for i in range(0,28):
+    for i in range(0,len(headers)):
         for j in range(0,100):
-            final_matrix[i][j]=sum_matrix[f]
-            f+=1
-            if (f==2701):
-                break
+            #print('i---> ' + str(i))
+            #print('j---> ' + str(j))
+            try:
+                final_matrix[i][j]=sum_matrix[f]
+                f+=1
+                if (f==2701):
+                    break
+            except:
+                pass
 
     new=np.ma.masked_equal(final_matrix,0)
     mini=1.0/sum_matrix.min()
     di=1.0/new
-    for i in range(0,28):
+    for i in range(0,len(headers)):
         for j in range(0,100):
             if di[i][j] == mini:
                 no_age = i
@@ -226,6 +236,6 @@ def main_plotter(fileofwork , format , title , output ):
     plt.savefig( full_path , bbox_inches='tight')
     #plt.show()
     return ('surface_' + ndx2 + fformat)
-
+#[6.8,6.9,7.0,7.1,7.2,7.3,
 #fileofwork = raw_input("\t\tENTER----->   ")
 #main_plotter(fileofwork ,'pdf',None,"C:\\Users\\hicha\\Desktop")

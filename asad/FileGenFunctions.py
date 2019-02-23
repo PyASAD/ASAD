@@ -2,7 +2,7 @@
 from __future__ import division
 import os.path
 import re
-
+import sys
 
 ##input_path = '../data/models/'
 ##output_path = '../data/models/'
@@ -10,83 +10,74 @@ import re
 #####FUNCTIONS#####
 
 #Creates the Main output file.
-def calculateFirstColumns(input_path,column,inputAge,output_path,choice=0,printer=0,random_number=0):
+def calculateFirstColumns(input_path,column,inputAge,output_path,choice=0,printer=0,random_number=0,headers=[6.8,6.9,7.0,7.1,7.2,7.3,7.4,7.5,7.6,7.7,7.8,7.9,8.0,8.1,8.2,8.3,8.4,8.5,8.6,8.7,8.8,8.9,9.0,9.1,9.2,9.3,9.4,9.5]):
     if choice == 0 or choice == 1:#Choice|----------------------------------------------------
         inputFiles = []
-
         inputFiles.append(open(input_path, 'r'))
-
         for inputFile in inputFiles:
-
             listElements = inputFile.readlines()
-
             outputFileName = os.path.basename(inputFile.name)
-
             outputFileName = outputFileName[:-4] + '_msp_' + str(inputAge) + '.txt' #+ '_' + "id" + str(random_number) +  '.txt'
-
             outputFile = open(os.path.join(output_path,outputFileName), 'w')
-
             outputFile.write('# ')       #Creating the Main File Header
-
-            for index in range(68, 96):
-
+            #print(headers)
+            #print('\n')
+            the_list = []
+            for f in headers:
+                the_list.append(float(float(f)*10))
+            #print(the_list)
+            for index in the_list:
+            #for index in range(68, 96):
                 z = 0
-
                 if index != inputAge:
-
                     for k in range(1, 101):
-
                         outputFile.write("{}, ".format(float(index + z)))
-
                         z += 0.001
-
             outputFile.write(str(inputAge) + '\n')
-
 
             if printer == 0:
                 print("\nGenerating File: " + outputFileName + ". Please wait...")
             else:
                 pass
 
-
-
             if listElements[0].split()[0][0] == '#':    #Checking if File contains a header
-
                 listElements = listElements[1:]
-
-
-
             for x in listElements:
-
                 outputFile.write("{} ".format(x.split()[0]))
-
-                for j in range(1,30):
-
+                for j in range(1,len(headers)+2):
                     for i in range(0,100):
-
-                        if column-1 != j and j < len(x.split()):     #Makes sure the equation is not done on the column chosen by the user.
-
-                                                                #Also makes sure the index is within the range.
-
-                            calcNumber = (float(x.split()[column-1])*(i/100)) + ((1-(i/100))*(float(x.split()[j])))
-
-                            outputFile.write("{0:.8f} ".format(calcNumber))
-
-                outputFile.write("{0:.8f}".format(float(x.split()[column-1])))
-
+                        if column-1 != j and j < len(x.split()):
+                            #Makes sure the equation is not done on the column chosen by the user. #Also makes sure the index is within the range.
+                            try:
+                                calcNumber = (float(x.split()[column-1])*(i/100)) + ( (1-(i/100))*(float(x.split()[j])) )
+                                outputFile.write("{0:.8f} ".format(calcNumber))
+                            except IndexError:
+                                print('\n\n\n\n\n\n\n')
+                                print('inputAge ---> ' + str(inputAge))
+                                #print(listElements)
+                                print('\n')
+                                print(x)
+                                print('\n')
+                                print(x.split())
+                                print('\n')
+                                print('column ---> ' + str(column))
+                                print('column - 1 ---> ' + str(column-1))
+                                print('j ---> ' + str(j))
+                                print('j - 1 ---> ' + str(j-1))
+                                print('i ---> ' + str(i))
+                                print('i - 1 ---> ' + str(i-1))
+                                print('len( x.split() ) ---> ' + str(len(x.split())))
+                                print('\n\n\n\n\n\n\n')
+                                sys.exit(15)
+                                #print('\n\n\t!\t!\t!\n\n')
+                                #pass
                 if x is listElements[-1]:
-
                     pass
-
                 else:
-
                     outputFile.write("\n")
-
-    outputFile.close()
-
-    inputFile.close()
-
-    return os.path.abspath(outputFile.name) , outputFileName
+        outputFile.close()
+        inputFile.close()
+        return os.path.abspath(outputFile.name) , outputFileName
 
 
 #Creates the Fine Tuned File.
@@ -137,21 +128,25 @@ def getInputFile(input_path):
 
 
 #Getting one column number.
-def getColumn(inputAge,choice=0):
+def getColumn(inputAge=0.0,choice=0,headers=[6.8,6.9,7.0,7.1,7.2,7.3,7.4,7.5,7.6,7.7,7.8,7.9,8.0,8.1,8.2,8.3,8.4,8.5,8.6,8.7,8.8,8.9,9.0,9.1,9.2,9.3,9.4,9.5]):
     if choice == 0:
-        inputAge = float(raw_input("For multiple stellar population, enter the Age (6.8 - 9.5): "))
+        inputAge = float(raw_input("For multiple stellar population, enter the Age ("+ str(headers[0]) +' - ' + str(headers[-1]) + '): ') )
 
-        while inputAge < 6.8 or inputAge > 9.5:
+        while inputAge < headers[0] or inputAge > headers[-1]:
 
             print("\nError! ----- Age is out of range!\n")
 
-            inputAge = float(raw_input("Enter the Age (6.8 - 9.5): "))
+            inputAge = float(raw_input("Enter the Age ("+ str(headers[0]) +' - ' + str(headers[-1]) + '): '))
 
         inputAge = inputAge * 10
 
         column = 2
 
-        for i in range(68, 96):
+        the_list = []
+        for f in headers:
+            the_list.append(float(f)*10)
+        #print(the_list)
+        for i in the_list:
 
             if i == inputAge:
 
@@ -163,7 +158,11 @@ def getColumn(inputAge,choice=0):
 
         column = 2
 
-        for i in range(68, 96):
+        the_list = []
+        for f in headers:
+            the_list.append(float(f)*10)
+        #print(the_list)
+        for i in the_list:
 
             if i == inputAge:
 
